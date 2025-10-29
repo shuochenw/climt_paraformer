@@ -176,7 +176,41 @@ class ParaformerConvection(TendencyComponent):
         """
         Call Paraformer code here. Reshape numpy arrays available in raw_state, send it to paraformer, get the outputs, and copy them to the relevant output dictionaries
         """
-
+        # ---Shuochen---
+        from models import MLP
+        # # suppose we have trained the model and saved its state_dict somewhere
+        model_state_path = 'mlp_weights.pth'
+        # # create a sample model, do not need this for test
+        # model = MLP(input_dim=X.shape[1], output_dim=y.shape[1])
+        # torch.save(model.state_dict(), model_state_path)
+        X = np.concatenate(
+            raw_state['air_temperature'],
+            raw_state['specific_humidity'],
+            raw_state['air_pressure_on_interface_levels'],
+            raw_state['surface_upward_latent_heat_flux'],
+            raw_state['surface_upward_sensible_heat_flux'],
+            raw_state['surface_air_pressure'],
+            raw_state['downwelling_shortwave_flux_in_air'], axis=1)
+        # Recreate model instance (same architecture)
+        # for input and output_dims, if we are not changing the number of vars, we can put a fixed number here.
+        model = MLP(input_dim=X.shape[1], output_dim=2*num_levs+1)
+        # Load model state_dict
+        model.load_state_dict(torch.load(model_state_path, map_location='cpu'))
+        # print(model)
+        # Convert numpy → torch
+        X = torch.from_numpy(X.astype(np.float32))
+        # Forward pass (no gradient)
+        model.eval()
+        with torch.no_grad():
+            y_pred = model(X)
+        # Convert back torch → numpy
+        y_pred = y_pred.numpy()
+        # ! the order of vars is very important, I assume precc_from_paraformer is the last output var when training
+        dTdt_from_paraformer = y_pred[:, :num_levs]
+        dQdt_from_paraformer = y_pred[:, num_levs:2*num_levs]
+        precc_from_paraformer = y_pred[:, -1]
+        # ---Shuochen---
+        
         diagnostics['convective_precipitation_rate'][:] = precc_from_paraformer #shape -> lon*lat
 
         tendencies['air_temperature'][:] = dTdt_from_paraformer #shape -> lon*lat, cols
