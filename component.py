@@ -177,6 +177,7 @@ class ParaformerConvection(TendencyComponent):
         Call Paraformer code here. Reshape numpy arrays available in raw_state, send it to paraformer, get the outputs, and copy them to the relevant output dictionaries
         """
         # ---Shuochen---
+        import torch
         from models import MLP
         # # suppose we have trained the model and saved its state_dict somewhere
         model_state_path = 'mlp_weights.pth'
