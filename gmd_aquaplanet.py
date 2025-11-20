@@ -1,8 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
+exp_name = '64x32'
 
 import climt
 from sympl import (
@@ -13,7 +9,9 @@ from sympl import (
 import numpy as np
 from datetime import timedelta
 import gfs_dynamical_core
-
+import xarray as xr
+import os
+import pickle
 
 def plot_function(fig, state):
 
@@ -38,9 +36,10 @@ def plot_function(fig, state):
     state['air_temperature'].mean(dim='lon').plot.contourf(
         ax=ax, levels=16)
     ax.set_title('Temperature')
-
     fig.tight_layout()
+    fig.savefig(f'/projects/sds-lab/Shuochen/climt/{exp_name}.png')
 
+# vars
 fields_to_store = ['air_temperature', 'specific_humidity', 'air_pressure', 
                    'air_pressure_on_interface_levels','surface_upward_latent_heat_flux',
                    'surface_upward_sensible_heat_flux','surface_air_pressure',
@@ -51,10 +50,9 @@ fields_to_store = ['air_temperature', 'specific_humidity', 'air_pressure',
                    'latitude', 'longitude']
 # Create plotting object
 monitor = PlotFunctionMonitor(plot_function)
-netcdf_monitor = NetCDFMonitor('gcm_without_seasonal_cycle.nc',write_on_store=True,store_names=fields_to_store)
+netcdf_monitor = NetCDFMonitor(f'/projects/sds-lab/Shuochen/climt/{exp_name}.nc',write_on_store=True,store_names=fields_to_store)
 set_constant('stellar_irradiance', value=200, units='W m^-2')
 model_time_step = timedelta(minutes=10)
-
 # Create components
 convection = climt.EmanuelConvection()
 simple_physics = TimeDifferencingWrapper(climt.SimplePhysics())
@@ -69,24 +67,40 @@ dycore = gfs_dynamical_core.GFSDynamicalCore(
      radiation_lw, convection], number_of_damped_levels=5
 )
 grid = climt.get_grid(nx=64, ny=32)
-# Create model state
-my_state = climt.get_default_state([dycore], grid_state=grid)
-# Set initial/boundary conditions
-latitudes = my_state['latitude'].values
-longitudes = my_state['longitude'].values
-zenith_angle = np.radians(latitudes)
-surface_shape = latitudes.shape
-my_state['zenith_angle'].values = zenith_angle
-my_state['eastward_wind'].values[:] = np.random.randn(
-    *my_state['eastward_wind'].shape)
-my_state['ocean_mixed_layer_thickness'].values[:] = 50
-surf_temp_profile = 290 - (40*np.sin(zenith_angle)**2)
-my_state['surface_temperature'].values = surf_temp_profile
+
+
+# load state from checkpoint
+checkpoint_path = f'/projects/sds-lab/Shuochen/climt/{exp_name}_checkpoint.pkl'
+if os.path.exists(checkpoint_path):
+    with open(checkpoint_path, "rb") as f:
+        data = pickle.load(f)
+    my_state, start_i = data["state"], data["i"]
+else:
+    start_i = 0
+    # Create model state
+    my_state = climt.get_default_state([dycore], grid_state=grid)
+    # Set initial/boundary conditions
+    latitudes = my_state['latitude'].values
+    longitudes = my_state['longitude'].values
+    zenith_angle = np.radians(latitudes)
+    surface_shape = latitudes.shape
+    my_state['zenith_angle'].values = zenith_angle
+    my_state['eastward_wind'].values[:] = np.random.randn(
+        *my_state['eastward_wind'].shape)
+    my_state['ocean_mixed_layer_thickness'].values[:] = 50
+    surf_temp_profile = 290 - (40*np.sin(zenith_angle)**2)
+    my_state['surface_temperature'].values = surf_temp_profile
+# save checkpoint
+def save_checkpoint(state, i, filename=checkpoint_path):
+    with open(filename, "wb") as f:
+        pickle.dump({"state": state, "i": i}, f)
+    print(f"--- checkpoint saved at iteration {i} ---")
+
+
 
 # loop
 toa_history = []
-temp_history = []
-for i in range(2*24*6):
+for i in range(start_i, 1500*24*6):
     diag, my_state = dycore(my_state, model_time_step)
     my_state.update(diag)
     my_state['time'] += model_time_step
@@ -101,12 +115,12 @@ for i in range(2*24*6):
     )
     toa_history.append(float(toa_net.mean()))
     
-    if i % (6*24) == 0:
-        netcdf_monitor.store(my_state)
-        monitor.store(my_state)
-        print('max. zonal wind: ', np.amax(my_state['eastward_wind'].values))
-        print('max. humidity: ', np.amax(my_state['specific_humidity'].values))
-        print('max. surf temp: ', np.amax(my_state['surface_temperature'].values))
-
+    # if i % (6*24) == 0:
+    netcdf_monitor.store(my_state)
+    monitor.store(my_state)
+    save_checkpoint(my_state, i)
+    print('max. zonal wind: ', np.amax(my_state['eastward_wind'].values))
+    print('max. humidity: ', np.amax(my_state['specific_humidity'].values))
+    print('max. surf temp: ', np.amax(my_state['surface_temperature'].values))
+        
     print(my_state['time'], float(toa_net.mean()))
-
