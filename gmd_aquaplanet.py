@@ -115,12 +115,12 @@ for i in range(start_i, 1500*24*6):
     )
     toa_history.append(float(toa_net.mean()))
     
-    # if i % (6*24) == 0:
-    netcdf_monitor.store(my_state)
-    monitor.store(my_state)
-    save_checkpoint(my_state, i)
-    print('max. zonal wind: ', np.amax(my_state['eastward_wind'].values))
-    print('max. humidity: ', np.amax(my_state['specific_humidity'].values))
-    print('max. surf temp: ', np.amax(my_state['surface_temperature'].values))
+    if i % (6*24) == 0:
+        netcdf_monitor.store(my_state)
+        monitor.store(my_state)
+        save_checkpoint(my_state, i)
+        print('max. zonal wind: ', np.amax(my_state['eastward_wind'].values))
+        print('max. humidity: ', np.amax(my_state['specific_humidity'].values))
+        print('max. surf temp: ', np.amax(my_state['surface_temperature'].values))
         
     print(my_state['time'], float(toa_net.mean()))
