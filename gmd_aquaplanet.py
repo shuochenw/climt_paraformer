@@ -46,7 +46,7 @@ fields_to_store = ['air_temperature', 'specific_humidity', 'air_pressure',
                    'surface_upward_sensible_heat_flux','surface_air_pressure',
                    'downwelling_shortwave_flux_in_air', #input
                    'convective_precipitation_rate', #diag
-                   'air_temperature_tendency_from_convection', 'specific_humidity_tendency_from_EmanuelConvection', #output, but no spec_hum_from_convection?,
+                   'air_temperature_tendency_from_convection', 'specific_humidity_tendency_from_EmanuelConvection', #output,
                    'upwelling_shortwave_flux_in_air', 'downwelling_longwave_flux_in_air','upwelling_longwave_flux_in_air',
                    'air_temperature_tendency_from_shortwave', 'air_temperature_tendency_from_longwave',
                    'latitude', 'longitude']
