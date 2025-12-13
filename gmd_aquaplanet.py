@@ -1,4 +1,5 @@
 exp_name = '64x32'
+exp_folder_name = 'gmd_aquaplanet'
 
 import climt
 from sympl import (
@@ -37,7 +38,7 @@ def plot_function(fig, state):
         ax=ax, levels=16)
     ax.set_title('Temperature')
     fig.tight_layout()
-    fig.savefig(f'/projects/sds-lab/Shuochen/climt/{exp_name}.png')
+    fig.savefig(f'/projects/sds-lab/Shuochen/climt/{exp_folder_name}/{exp_name}.png')
 
 # vars
 fields_to_store = ['air_temperature', 'specific_humidity', 'air_pressure', 
@@ -45,16 +46,17 @@ fields_to_store = ['air_temperature', 'specific_humidity', 'air_pressure',
                    'surface_upward_sensible_heat_flux','surface_air_pressure',
                    'downwelling_shortwave_flux_in_air', #input
                    'convective_precipitation_rate', #diag
-                   'air_temperature_tendency_from_convection', #output, but no spec_hum_from_convection?,
-                   'upwelling_shortwave_flux_in_air', 'downwelling_longwave_flux_in_air','upwelling_longwave_flux_in_air', # others
+                   'air_temperature_tendency_from_convection', 'specific_humidity_tendency_from_EmanuelConvection', #output, but no spec_hum_from_convection?,
+                   'upwelling_shortwave_flux_in_air', 'downwelling_longwave_flux_in_air','upwelling_longwave_flux_in_air',
+                   'air_temperature_tendency_from_shortwave', 'air_temperature_tendency_from_longwave',
                    'latitude', 'longitude']
 # Create plotting object
 monitor = PlotFunctionMonitor(plot_function)
-netcdf_monitor = NetCDFMonitor(f'/projects/sds-lab/Shuochen/climt/{exp_name}.nc',write_on_store=True,store_names=fields_to_store)
+netcdf_monitor = NetCDFMonitor(f'/projects/sds-lab/Shuochen/climt/{exp_folder_name}/{exp_name}.nc',write_on_store=True,store_names=fields_to_store)
 set_constant('stellar_irradiance', value=200, units='W m^-2')
 model_time_step = timedelta(minutes=10)
 # Create components
-convection = climt.EmanuelConvection()
+convection = climt.EmanuelConvection(tendencies_in_diagnostics=True)
 simple_physics = TimeDifferencingWrapper(climt.SimplePhysics())
 radiation_step = timedelta(hours=1)
 radiation_lw = UpdateFrequencyWrapper(
@@ -70,7 +72,7 @@ grid = climt.get_grid(nx=64, ny=32)
 
 
 # load state from checkpoint
-checkpoint_path = f'/projects/sds-lab/Shuochen/climt/{exp_name}_checkpoint.pkl'
+checkpoint_path = f'/projects/sds-lab/Shuochen/climt/{exp_folder_name}/{exp_name}_checkpoint.pkl'
 if os.path.exists(checkpoint_path):
     with open(checkpoint_path, "rb") as f:
         data = pickle.load(f)
@@ -87,7 +89,7 @@ else:
     my_state['zenith_angle'].values = zenith_angle
     my_state['eastward_wind'].values[:] = np.random.randn(
         *my_state['eastward_wind'].shape)
-    my_state['ocean_mixed_layer_thickness'].values[:] = 50
+    my_state['ocean_mixed_layer_thickness'].values[:] = 10
     surf_temp_profile = 290 - (40*np.sin(zenith_angle)**2)
     my_state['surface_temperature'].values = surf_temp_profile
 # save checkpoint
@@ -100,7 +102,7 @@ def save_checkpoint(state, i, filename=checkpoint_path):
 
 # loop
 toa_history = []
-for i in range(start_i, 1500*24*6):
+for i in range(start_i, 10000*24*6):
     diag, my_state = dycore(my_state, model_time_step)
     my_state.update(diag)
     my_state['time'] += model_time_step
