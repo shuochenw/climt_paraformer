@@ -118,7 +118,7 @@ tau = DataArray(
 time_stepper = AdamsBashforth([convection, radiation_lw, radiation_sw, slab])
 
 toa_history = []
-for i in range(20):
+for i in range(200000):
     diagnostics, state = time_stepper(state, timestep)
     state.update(diagnostics)
 
