@@ -1,4 +1,4 @@
-exp_name = '64x32'
+exp_name = '64x32_4h_350'
 exp_folder_name = 'gmd_aquaplanet'
 
 import climt
@@ -48,12 +48,16 @@ fields_to_store = ['air_temperature', 'specific_humidity', 'air_pressure',
                    'convective_precipitation_rate', #diag
                    'air_temperature_tendency_from_convection', 'specific_humidity_tendency_from_EmanuelConvection', #output,
                    'upwelling_shortwave_flux_in_air', 'downwelling_longwave_flux_in_air','upwelling_longwave_flux_in_air',
-                   'air_temperature_tendency_from_shortwave', 'air_temperature_tendency_from_longwave',
-                   'latitude', 'longitude']
+                   'air_temperature_tendency_from_shortwave', 'air_temperature_tendency_from_longwave']
+# fields_to_store = ['air_temperature', 'specific_humidity','surface_upward_latent_heat_flux',
+#                    'surface_upward_sensible_heat_flux','surface_air_pressure',
+#                    'upwelling_shortwave_flux_in_air', 'downwelling_longwave_flux_in_air','upwelling_longwave_flux_in_air', 'downwelling_shortwave_flux_in_air',
+#                    'air_temperature_tendency_from_shortwave', 'air_temperature_tendency_from_longwave']
 # Create plotting object
-monitor = PlotFunctionMonitor(plot_function)
+# monitor = PlotFunctionMonitor(plot_function)
+monitor = None
 netcdf_monitor = NetCDFMonitor(f'/projects/sds-lab/Shuochen/climt/{exp_folder_name}/{exp_name}.nc',write_on_store=True,store_names=fields_to_store)
-set_constant('stellar_irradiance', value=200, units='W m^-2')
+set_constant('stellar_irradiance', value=350, units='W m^-2')
 model_time_step = timedelta(minutes=10)
 # Create components
 convection = climt.EmanuelConvection(tendencies_in_diagnostics=True)
@@ -117,12 +121,14 @@ for i in range(start_i, 10000*24*6):
     )
     toa_history.append(float(toa_net.mean()))
     
-    if i % (6*24) == 0:
+    if i % (6*4) == 0:
         netcdf_monitor.store(my_state)
-        monitor.store(my_state)
+        if monitor is not None:
+            monitor.store(my_state)
+    # if (i > 10000) and (i % (6*24) == 0):
         save_checkpoint(my_state, i)
-        print('max. zonal wind: ', np.amax(my_state['eastward_wind'].values))
-        print('max. humidity: ', np.amax(my_state['specific_humidity'].values))
-        print('max. surf temp: ', np.amax(my_state['surface_temperature'].values))
+        # print('max. zonal wind: ', np.amax(my_state['eastward_wind'].values))
+        # print('max. humidity: ', np.amax(my_state['specific_humidity'].values))
+        # print('max. surf temp: ', np.amax(my_state['surface_temperature'].values))
         
-    print(my_state['time'], float(toa_net.mean()))
+        print(my_state['time'], float(toa_net.mean()))
