@@ -46,18 +46,6 @@ Atmospheric column state history -> Temporal memory-aware Transformer -> Convect
 
 The offline setting measures how well the emulator matches target outputs from the original parameterization. The online setting tests whether those predictions remain physically and numerically stable when inserted back into the model loop.
 
-## Getting Started
-
-Create an environment with the scientific Python stack and PyTorch:
-
-```bash
-conda create -n climt-paraformer python=3.10
-conda activate climt-paraformer
-pip install numpy scipy pandas matplotlib xarray netcdf4 jupyter torch
-```
-
-Additional dependencies may be required by the column model code in `column_code_with_slab/`.
-
 ## Running the Main Experiments
 
 Preprocess generated data:
@@ -93,20 +81,3 @@ Typical outputs include:
 - Online coupled-model trajectories.
 - Stability and drift diagnostics.
 - Comparison plots between the original convective parameterization and the emulator.
-
-## Notes
-
-This repository is intended for research use. Online climate-model emulation can be sensitive to normalization, temporal context length, coupling frequency, and numerical stability checks. Offline skill is necessary but not sufficient; online tests in `online.py` are the primary stability test.
-
-## Citation
-
-If you use this code, please cite the project as:
-
-```bibtex
-@misc{climt_paraformer,
-  title = {climt-paraformer: Stable Emulation of Convective Parameterization using a Temporal Memory-aware Transformer},
-  author = {Shuochen},
-  year = {2026},
-  note = {Research code}
-}
-```
